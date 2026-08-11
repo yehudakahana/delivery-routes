@@ -72,11 +72,11 @@ DOTENV_PATH = PROJECT_ROOT / ".env"
 COLUMN_MAPPING = {
     "street": None,
     "house_number": None,
-    "apartment": None,
-    "entrance": None,
-    "customer_name": None,
-    "full_address": None,   # optional: single free-text address column
-    "envelope_count": None,  # optional: if absent, one envelope per row
+    "apartment": "דירה",
+    "entrance": "כניסה",
+    "customer_name": "שם לקוח",
+    "full_address": "כתובת",     # single free-text address column
+    "envelope_count": "מעטפות",  # if absent, one envelope per row
 }
 
 # If the workbook has no explicit quantity column, each data row counts as
@@ -140,10 +140,15 @@ STOP_MERGE_RADIUS_METERS = 15
 # normalized address, normalization is broken. Stop and ask.
 MAX_PROXIMITY_MERGE_PERCENT = 8.0
 
-# Sanity band for the collapsed stop count, as a fraction of input rows.
-# ~450 rows is expected to yield roughly 250-320 stops. A result near the
-# raw row count means normalization failed.
-EXPECTED_STOP_COUNT_RANGE = (230, 340)
+# Sanity band for the collapsed stop count, expressed as stops-per-row so it
+# holds at any dataset size. ~450 rows -> ~250-320 stops is 0.55-0.71.
+# A ratio near 1.0 means normalization failed and every row became its own
+# stop; that is the failure this check exists to catch.
+EXPECTED_STOP_RATIO_RANGE = (0.50, 0.78)
+
+# Below this many rows the ratio band is noise, so it is reported but not
+# treated as a stop condition.
+STOP_RATIO_CHECK_MIN_ROWS = 100
 
 # A single stop holding more than this many customers is flagged for eyeball
 # review -- it is the signature of a geocoding or merge failure.
