@@ -158,10 +158,29 @@ SUSPICIOUS_CUSTOMERS_PER_STOP = 12
 # Travel-time matrix (stage 4)
 # --------------------------------------------------------------------------
 
+# Local OSRM. Bring it up with (from the project root):
+#   docker run -t -v "%cd%/osrm:/data" ghcr.io/project-osrm/osrm-backend \
+#       osrm-extract -p /opt/car.lua /data/israel-and-palestine-latest.osm.pbf
+#   ... osrm-partition /data/israel-and-palestine-latest.osrm
+#   ... osrm-customize /data/israel-and-palestine-latest.osrm
+#   docker run -p 5000:5000 -v "%cd%/osrm:/data" ghcr.io/project-osrm/osrm-backend \
+#       osrm-routed --algorithm mld --max-table-size 1000 \
+#       /data/israel-and-palestine-latest.osrm
+# --max-table-size must exceed the stop count or /table refuses the request.
 OSRM_HOST = "http://127.0.0.1:5000"
+
+# Public OSRM instance, for demo runs on synthetic data only. Real customer
+# coordinates must never leave the machine -- use the local host above.
+OSRM_DEMO_HOST = "https://router.project-osrm.org"
+
 OSRM_PROFILE = "driving"
-OSRM_TABLE_CHUNK_SIZE = 100      # nodes per /table request slice
+# Coordinates per /table request. Requests carry at most 2x this many
+# coordinates (one source chunk plus one destination chunk), which keeps
+# them under any server-side coordinate cap.
+OSRM_TABLE_CHUNK_SIZE = 60
+OSRM_ROUTE_CHUNK_SIZE = 40       # waypoints per /route call when stitching geometry
 OSRM_REQUEST_TIMEOUT_SECONDS = 120
+OSRM_MIN_INTERVAL_SECONDS = 0.2  # politeness pacing for the public demo host
 
 # The matrix is asymmetric by construction (one-way streets). It is never
 # symmetrized, averaged, or backfilled with straight-line distance. This flag
