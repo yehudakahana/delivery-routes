@@ -1,0 +1,45 @@
+# --- secrets ---
+.env
+*.key
+
+# --- real customer data: never committed ---
+*.xlsx
+*.xls
+*.csv
+!requirements*.csv
+
+# --- caches containing customer addresses ---
+cache/
+geocode_cache.json
+
+# --- stage artifacts (all contain customer data) ---
+output/
+parsed_addresses.json
+malformed_rows.csv
+geocode_results.json
+geocoding_failures.json
+geocoding_review.json
+stops.json
+route_order.json
+travel_time_matrix.json
+route_geometry.json
+
+# --- generated route files ---
+final_route.html
+final_route.csv
+printable_route.html
+navigation_links.html
+nearby_out_of_sequence.csv
+
+# --- logs ---
+*.log
+logs/
+
+# --- OSRM working data ---
+osrm/
+
+# --- python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
