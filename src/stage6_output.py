@@ -120,8 +120,7 @@ MAP_TEMPLATE = """<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>מסלול חלוקת מעטפות - בני ברק</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+__LEAFLET_ASSETS__
 <style>
   html, body { margin:0; padding:0; height:100%; font-family: Arial, "Segoe UI", sans-serif; }
   #map { height:100%; width:100%; }
@@ -243,6 +242,43 @@ legend.addTo(map);
 """
 
 
+CDN_FALLBACK = (
+    f'<link rel="stylesheet" '
+    f'href="https://unpkg.com/leaflet@{config.LEAFLET_VERSION}/dist/leaflet.css">\n'
+    f'<script src="https://unpkg.com/leaflet@{config.LEAFLET_VERSION}/dist/leaflet.js">'
+    f'</script>'
+)
+
+
+def leaflet_assets() -> str:
+    """
+    Leaflet inlined into the page.
+
+    The map file is meant to be a single attachment that works on its own, so
+    the library travels with it instead of being fetched from a CDN at open
+    time. Marker and control images are already data URIs inside the vendored
+    CSS, so nothing but the map tiles touches the network.
+    """
+    if not config.INLINE_LEAFLET:
+        return CDN_FALLBACK
+
+    if not (config.LEAFLET_CSS.exists() and config.LEAFLET_JS.exists()):
+        print("  ! vendored Leaflet missing; falling back to the CDN. "
+              "Run: python tools/fetch_leaflet.py")
+        return CDN_FALLBACK
+
+    css = config.LEAFLET_CSS.read_text(encoding="utf-8")
+    javascript = config.LEAFLET_JS.read_text(encoding="utf-8")
+
+    # A literal </script> inside the library text would close the tag early.
+    javascript = javascript.replace("</script>", "<\\/script>")
+
+    return (
+        f"<style>\n{css}\n</style>\n"
+        f"<script>\n{javascript}\n</script>"
+    )
+
+
 def write_map(route: list[dict], geometry: list[list[float]], nearby: dict) -> None:
     payload = [
         {
@@ -258,6 +294,7 @@ def write_map(route: list[dict], geometry: list[list[float]], nearby: dict) -> N
 
     html = (
         MAP_TEMPLATE
+        .replace("__LEAFLET_ASSETS__", leaflet_assets())
         .replace("__STOPS__", json.dumps(payload, ensure_ascii=False))
         .replace("__GEOMETRY__", json.dumps(geometry))
         .replace("__NEARBY__", json.dumps(nearby, ensure_ascii=False))
@@ -553,6 +590,8 @@ def write_csv(route: list[dict]) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--demo-host", action="store_true")
+    parser.add_argument("--refresh-geometry", action="store_true",
+                        help="re-fetch road geometry instead of reusing the cache")
     args = parser.parse_args()
 
     if not config.STAGE5_ORDER.exists():
@@ -565,9 +604,26 @@ def main() -> None:
     nearby = find_opportunistic(route)
 
     host = config.OSRM_DEMO_HOST if args.demo_host else config.OSRM_HOST
-    print(f"fetching road geometry from {host}")
-    geometry = fetch_route_geometry(host, [(s["latitude"], s["longitude"]) for s in route])
-    config.STAGE4_GEOMETRY.write_text(json.dumps(geometry), encoding="utf-8")
+    cached = None
+    if config.STAGE4_GEOMETRY.exists() and not args.refresh_geometry:
+        payload = json.loads(config.STAGE4_GEOMETRY.read_text(encoding="utf-8"))
+        # Only reuse geometry that was drawn for this exact ordering.
+        if payload.get("stop_ids") == [s["stop_id"] for s in route]:
+            cached = payload["geometry"]
+
+    if cached is not None:
+        geometry = cached
+        print(f"reusing cached road geometry ({len(geometry)} points)")
+    else:
+        print(f"fetching road geometry from {host}")
+        geometry = fetch_route_geometry(
+            host, [(s["latitude"], s["longitude"]) for s in route]
+        )
+        config.STAGE4_GEOMETRY.write_text(
+            json.dumps({"stop_ids": [s["stop_id"] for s in route],
+                        "geometry": geometry}),
+            encoding="utf-8",
+        )
 
     if not geometry:
         raise SystemExit("No road geometry returned; refusing to draw straight lines.")

@@ -270,4 +270,16 @@ MAP_DEFAULT_ZOOM = 15
 MAP_TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 MAP_TILE_ATTRIBUTION = "© OpenStreetMap contributors"
 
+# Leaflet is vendored and inlined into final_route.html rather than pulled
+# from a CDN, so the map keeps working if unpkg is slow, blocked, or the
+# pinned version disappears. Refresh with: python tools/fetch_leaflet.py
+VENDOR_DIRECTORY = PROJECT_ROOT / "vendor"
+LEAFLET_CSS = VENDOR_DIRECTORY / "leaflet.inlined.css"
+LEAFLET_JS = VENDOR_DIRECTORY / "leaflet.js"
+LEAFLET_VERSION = "1.9.4"
+
+# Map tiles still come from the network -- embedding them would add tens of
+# megabytes. The map file is otherwise fully self-contained.
+INLINE_LEAFLET = True
+
 CSV_ENCODING = "utf-8-sig"   # so Excel opens the Hebrew correctly
