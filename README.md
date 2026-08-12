@@ -152,3 +152,4 @@ tests/test_normalize.py    normalization self-checks
 vendor/                    inlined Leaflet assets
 output/                    artifacts (git-ignored)
 ```
+<img width="1080" height="1853" alt="Screenshot_20260812_181608_Chrome" src="https://github.com/user-attachments/assets/4730aaa9-185d-4b7a-8650-b9b241c87c65" />
