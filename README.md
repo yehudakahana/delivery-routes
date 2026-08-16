@@ -221,3 +221,4 @@ Try it without any real data:
 python tools/make_demo_data.py         # 30 invented customers
 python tests/test_normalize.py         # normalization self-checks
 ```
+<img width="1080" height="1853" alt="Screenshot_20260812_181608_Chrome" src="https://github.com/user-attachments/assets/4730aaa9-185d-4b7a-8650-b9b241c87c65" />
